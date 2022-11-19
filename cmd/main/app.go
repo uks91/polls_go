@@ -2,7 +2,8 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/uks91/polls_go/internal/handlers"
+	"github.com/uks91/polls_go/internal/user"
+	"github.com/uks91/polls_go/internal/user/db"
 )
 
 func main() {
@@ -11,8 +12,10 @@ func main() {
 	//r := hand.InitRoutes()
 	//r.Run("127.0.0.1:1001")
 
-	userHandler := handlers.NewUserHandler()
-	userHandler.Register(router.Group("/"))
+	userStorage := db.NewStorage()
+	userService := user.NewUserService(userStorage)
+	userHandler := user.NewUserHandler(userService)
+	userHandler.Register(router.Group("/api/user"))
 
 	router.Run("127.0.0.1:1001")
 }
