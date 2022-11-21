@@ -11,7 +11,7 @@
     * **GET** `/` - *gets all users*
     * **GET** `/auth` - *check authentication*
     * **POST** `/login` - *log in*
-    * **POST** `/registartion` - *sign in*
+    * **POST** `/registration` - *sign in*
     
 # Repository scheme:
 
