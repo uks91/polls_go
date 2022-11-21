@@ -51,15 +51,33 @@ func (h *userHandler) GetUser(c *gin.Context) {
 }
 
 func (h *userHandler) LogIn(c *gin.Context) {
-	var usr *UserDTO
-	if err := c.ShouldBindJSON(usr); err != nil {
+	var usr UserDTO
+	if err := c.ShouldBindJSON(&usr); err != nil {
 		c.String(http.StatusTeapot, "I'm a teapot")
+		fmt.Printf("I'm a teapot: %v", err)
 		return
 	}
 	//h.service
-	h.service.LogIn(usr)
+	err := h.service.LogIn(&usr)
+	if err != nil {
+		c.String(http.StatusMethodNotAllowed, "login failed")
+		return
+	}
+	c.String(http.StatusOK, "It's ok!")
 }
 
 func (h *userHandler) SignIn(c *gin.Context) {
-
+	var usr UserDTO
+	if err := c.ShouldBindJSON(&usr); err != nil {
+		c.String(http.StatusTeapot, "I'm a teapot")
+		fmt.Printf("I'm a teapot: %v", err)
+		return
+	}
+	//h.service
+	err := h.service.SignIn(&usr)
+	if err != nil {
+		c.String(http.StatusMethodNotAllowed, "registration failed")
+		return
+	}
+	c.String(http.StatusOK, "It's ok!")
 }
