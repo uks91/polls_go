@@ -39,7 +39,7 @@ func (h *pollHandler) GetPoll(c *gin.Context) {
 		c.String(http.StatusBadRequest, "something goes wrong")
 		return
 	}
-	//// TODO: check if id is int
+	// TODO: check if id is int
 	pollObj, err := h.service.GetPoll(id)
 	if err != nil {
 		c.String(http.StatusNotFound, err.Error())

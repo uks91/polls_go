@@ -9,8 +9,21 @@ type QuestionDTO struct {
 	Options []string
 }
 
+type Option struct {
+	Id         string `db:"options.id,omitempty"`
+	Text       string `db:"options.text,omitempty"`
+	QuestionId string `db:"options.questionId,omitempty"`
+	//CreatedAt  string `db:"createdAt,omitempty" json:"-"`
+	//UpdatedAt  string `db:"updatedAt,omitempty" json:"-"`
+}
+
 type Question struct {
-	Text string
+	Id      string   `db:"id,omitempty"`
+	Text    string   `db:"text,omitempty"`
+	Type    string   `db:"type"`
+	Options []Option `db:"options,omitempty"`
+	//CreatedAt string `db:"createdAt,omitempty" json:"-"`
+	//UpdatedAt string `db:"updatedAt,omitempty" json:"-"`
 }
 
 type PollDTO struct {

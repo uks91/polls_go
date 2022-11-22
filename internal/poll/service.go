@@ -25,6 +25,7 @@ func (u *Service) GetPollsList() ([]PollDTO, error) {
 }
 
 func (u *Service) GetPoll(id string) (Poll, error) {
+	u.storage.GetQuestions(id)
 	return u.storage.GetPoll(id)
 }
 

@@ -5,4 +5,5 @@ type Storage interface {
 	GetPoll(id string) (Poll, error)
 	GetQuestion(id string) (Question, error)
 	CreatePoll(poll *Poll) (int64, error)
+	GetQuestions(pollId string) ([]Question, error)
 }

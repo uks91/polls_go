@@ -5,3 +5,9 @@ Content-Type: application/json
 }
 
 ###
+
+GET http://localhost:1001/api/polls/1
+Content-Type: application/json
+
+{
+}

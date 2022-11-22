@@ -6,6 +6,7 @@ type UserDTO struct {
 }
 
 type User struct {
+	*UserDTO
 	ID           string `json:"id" bson:"_id,omitempty" db:"id"`
 	Username     string `json:"login" bson:"username" db:"login"` // bson - for mongo
 	PasswordHash string `json:"-" bson:"password" db:"password"`
