@@ -4,8 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
-	"github.com/uks91/polls_go/internal/user"
-	"github.com/uks91/polls_go/internal/user/db"
+	"github.com/uks91/polls_go/internal/composite"
 )
 
 func main() {
@@ -15,10 +14,11 @@ func main() {
 		panic(err)
 	}
 
-	userStorage := db.NewStorage(conn)
-	userService := user.NewUserService(userStorage)
-	userHandler := user.NewUserHandler(userService)
-	userHandler.Register(router.Group("/api/user"))
+	userComposite := composite.NewUserComposite(conn)
+	userComposite.Register(router.Group("/api/user"))
+
+	pollComposite := composite.NewPollComposite(conn)
+	pollComposite.Register(router.Group("/api/polls"))
 
 	router.Run("127.0.0.1:1001")
 }

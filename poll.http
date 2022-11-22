@@ -1,0 +1,7 @@
+GET http://localhost:1001/api/polls
+Content-Type: application/json
+
+{
+}
+
+###
