@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/uks91/polls_go/internal/user"
+	"strconv"
 )
 
 type userStorage struct {
@@ -51,9 +52,10 @@ func (u *userStorage) Create(usr user.User) (user.User, error) {
 	if err != nil {
 		return user.User{}, fmt.Errorf("unable to create new user: %v", err)
 	}
-	id, _ := exec.LastInsertId()
-	fmt.Printf("inserted id is %s", string(id))
-	out.ID = string(id)
+	idInt, _ := exec.LastInsertId()
+	id := strconv.FormatInt(idInt, 10)
+	fmt.Printf("inserted id is %s", id)
+	out.ID = id
 	return out, nil
 }
 

@@ -19,7 +19,7 @@ Content-Type: application/json
 
 {
   "name": "super poll",
-  "description": "it's a super poll",
+  "description": "its a super poll",
   "questions": [
     {
       "name": "sflvkmsfblmglbmrlgb",

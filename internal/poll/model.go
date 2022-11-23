@@ -11,7 +11,7 @@ type Option struct {
 	UpdatedAt  string `json:"-" db:"updatedAt"`
 }
 type QuestionDTO struct {
-	Text    string      `json:"text,omitempty"`
+	Text    string      `json:"name,omitempty"`
 	Type    interface{} `json:"type,omitempty"`
 	Options []string    `json:"options,omitempty"`
 }

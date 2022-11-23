@@ -139,110 +139,69 @@ func (p *pollStorage) GetQuestion(id string) (poll.Question, error) {
 	panic("implement me")
 }
 
-func (p *pollStorage) CreatePoll(pollPtr *poll.Poll) (int64, error) {
+func (p *pollStorage) CreatePoll(pollPtr *poll.Poll) (string, error) {
 	const pollTemplate = `INSERT INTO "polls" ("name", "description", "createdAt", "updatedAt") 
-	VALUES (%s, %s, '2022-11-22', '2022-11-22') RETURNING ("id")`
+	VALUES ('%s', '%s', '2022-11-22', '2022-11-22') RETURNING ("id")`
 
 	const questionTemplate = `INSERT INTO "questions" ("text", "type", "createdAt", "updatedAt", "pollId") 
-	VALUES (%s, %s, '2022-11-22', '2022-11-22', %s) RETURNING ("id")`
+	VALUES ('%s', '%s', '2022-11-22', '2022-11-22', '%s') RETURNING ("id")`
 
 	const optionTemplate = `INSERT INTO "options" ("text", "createdAt", "updatedAt", "questionId") 
-	VALUES (%s, '2022-11-22', '2022-11-22', %s) RETURNING ("id")`
+	VALUES ('%s', '2022-11-22', '2022-11-22', '%s') RETURNING ("id")`
 
 	//var pollObj poll.Poll
 	pollQuery := fmt.Sprintf(pollTemplate, pollPtr.Name, pollPtr.Description)
-	p.
-	pollExec, err := p.db.NamedExec(pollTemplate, *pollPtr)
+	rows, err := p.db.Queryx(pollQuery)
+	//pollExec, err := p.db.NamedExec(pollTemplate, *pollPtr)
+	fmt.Printf(pollQuery)
 	if err != nil {
-		return -1, fmt.Errorf("unable to create a new poll: %v", err)
+		return "-1", fmt.Errorf("unable to create a new poll: %v", err)
 	}
-	pollId, _ := pollExec.LastInsertId()
-	for i, _ := range pollPtr.Question {
-		question := pollPtr.Question[i]
-		question.PollId = string(pollId)
-		questExec, err := p.db.NamedExec(questionTemplate, question)
-		if err != nil {
-			return -1, fmt.Errorf("unable to create a new question: %v", err)
+
+	readId := func(r *sqlx.Rows) (string, error) {
+		if r.Next() {
+			type idStruct struct {
+				Id string `db:"id"`
+			}
+			var newId idStruct
+			e := r.StructScan(&newId)
+			if e != nil {
+				return "-1", fmt.Errorf("unable to read id: %v", e)
+			}
+			return newId.Id, nil
 		}
-		questId, _ := questExec.LastInsertId()
-		for j, _ := range question.Options {
-			option := question.Options[j]
-			option.QuestionId = string(questId)
-			_, err := p.db.NamedExec(optionTemplate, option)
+		return "-1", fmt.Errorf("unable to read id: rows is empty")
+	}
+
+	pollId, err := readId(rows)
+	if err != nil {
+		fmt.Printf("%v", err)
+	}
+
+	for _, question := range pollPtr.Question {
+		//questExec, err := p.db.NamedExec(questionTemplate, question)
+		questQuery := fmt.Sprintf(questionTemplate, question.Text, question.Type, pollId)
+		fmt.Println(questQuery)
+		rows, err = p.db.Queryx(questQuery)
+		if err != nil {
+			return "-1", fmt.Errorf("unable to create a new question: %v", err)
+		}
+		questId, err := readId(rows)
+		if err != nil {
+			fmt.Printf("%v", err)
+		}
+		for _, option := range question.Options {
+			optionQuery := fmt.Sprintf(optionTemplate, option.Text, questId)
+			fmt.Printf(optionQuery)
+			_, err := p.db.Queryx(optionQuery)
+			//_, err := p.db.NamedExec(optionTemplate, option)
 			if err != nil {
-				return -1, fmt.Errorf("unable to create a new option: %v", err)
+				return "-1", fmt.Errorf("unable to create a new option: %v", err)
 			}
 		}
 	}
 	return pollId, nil
-	/*
-		query := fmt.Sprintf(`INSERT INTO "users" ("login", "password", "role", "createdAt", "updatedAt")  VALUES ('%s', '%s', '%s', '2022-11-22', '2022-11-22') RETURNING ("id", "login", "password", "role")`, usr.Username, usr.PasswordHash, usr.Role)
-		fmt.Println(query)
-		//row := u.db.QueryRowx(query)
-		exec, err := u.db.NamedExec(`INSERT INTO "users" ("login", "password", "role", "createdAt", "updatedAt")  VALUES (:login, :password, :role, '2022-11-22', '2022-11-22') RETURNING ("id", "login", "password", "role")`, usr)
-		if err != nil {
-			return user.User{}, fmt.Errorf("unable to create new user: %v", err)
-		}
-		id, _ := exec.LastInsertId()
-		fmt.Printf("inserted id is %s", string(id))
-		out.ID = string(id)
-		return out, nil
-	*/
 }
-
-/*
-func (u *pollStorage) GetUserByLogin(login string) (user.User, error) {
-	var usr user.User
-	query := fmt.Sprintf(`SELECT "id", "login", "password", "role" FROM users WHERE "login" = '%s'`, login)
-	err := u.db.Get(&usr, query)
-	if err != nil {
-		return usr, fmt.Errorf("user with login=%s not found: %v", login, err)
-	}
-	return usr, nil
-}
-
-func (u *pollStorage) GetOne(uuid string) (user.User, error) {
-	var usr user.User
-	query := fmt.Sprintf(`SELECT "id", "login", "role", "password" from "users" WHERE "id"=%s`, uuid)
-	err := u.db.Get(&usr, query)
-	if err != nil {
-		fmt.Printf("failed query id: %s", query)
-		return usr, fmt.Errorf("user with id=%s not found: %v", uuid, err)
-	}
-	fmt.Println("usr == ", usr)
-	return usr, nil
-}
-
-func (u *pollStorage) GetAll() ([]user.User, error) {
-	var users []user.User
-	err := u.db.Select(&users, `SELECT "id", "login", "role", "password" from "users"`)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get all users: %v", err)
-	}
-
-	return users, nil
-}
-
-func (u *pollStorage) Create(usr user.User) (user.User, error) {
-	out := usr
-	query := fmt.Sprintf(`INSERT INTO "users" ("login", "password", "role", "createdAt", "updatedAt")  VALUES ('%s', '%s', '%s', '2022-11-22', '2022-11-22') RETURNING ("id", "login", "password", "role")`, usr.Username, usr.PasswordHash, usr.Role)
-	fmt.Println(query)
-	//row := u.db.QueryRowx(query)
-	exec, err := u.db.NamedExec(`INSERT INTO "users" ("login", "password", "role", "createdAt", "updatedAt")  VALUES (:login, :password, :role, '2022-11-22', '2022-11-22') RETURNING ("id", "login", "password", "role")`, usr)
-	if err != nil {
-		return user.User{}, fmt.Errorf("unable to create new user: %v", err)
-	}
-	id, _ := exec.LastInsertId()
-	fmt.Printf("inserted id is %s", string(id))
-	out.ID = string(id)
-	return out, nil
-}
-
-func (u *pollStorage) Delete(book *user.User) error {
-	//TODO implement me
-	panic("implement me")
-}
-*/
 
 func NewStorage(db *sqlx.DB) poll.Storage {
 	return &pollStorage{
