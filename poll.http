@@ -6,8 +6,44 @@ Content-Type: application/json
 
 ###
 
-GET http://localhost:1001/api/polls/1
+GET http://localhost:1001/api/polls/3
 Content-Type: application/json
 
 {
+}
+
+###
+
+POST http://localhost:1001/api/polls/new
+Content-Type: application/json
+
+{
+  "name": "super poll",
+  "description": "it's a super poll",
+  "questions": [
+    {
+      "name": "sflvkmsfblmglbmrlgb",
+      "type": "2",
+      "options": [
+        "ggs111",
+        "fgdfg222",
+        "rrrgeg33",
+        "53454"
+      ]
+    },
+    {
+      "name": "dfgdfgtext",
+      "type": "3",
+      "options": []
+    },
+    {
+      "name": "55rt343r5",
+      "type": 1,
+      "options": [
+        "dfgdfdfgd",
+        "fgettyrtert",
+        "ertert5er"
+      ]
+    }
+  ]
 }

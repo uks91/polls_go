@@ -3,34 +3,34 @@ package poll
 // DTO - объект для транспортировки данных
 // DAO - объект для сохранения данных в БД
 
-type QuestionDTO struct {
-	Text    string
-	Type    int
-	Options []string
-}
-
 type Option struct {
-	Id         string `db:"options.id,omitempty"`
-	Text       string `db:"options.text,omitempty"`
-	QuestionId string `db:"options.questionId,omitempty"`
-	//CreatedAt  string `db:"createdAt,omitempty" json:"-"`
-	//UpdatedAt  string `db:"updatedAt,omitempty" json:"-"`
+	Id         string `json:"id,omitempty" db:"options.id,omitempty"`
+	Text       string `json:"text,omitempty" db:"options.text,omitempty"`
+	QuestionId string `json:"-" db:"options.questionId,omitempty"`
+	CreatedAt  string `json:"-" db:"createdAt"`
+	UpdatedAt  string `json:"-" db:"updatedAt"`
+}
+type QuestionDTO struct {
+	Text    string      `json:"text,omitempty"`
+	Type    interface{} `json:"type,omitempty"`
+	Options []string    `json:"options,omitempty"`
 }
 
 type Question struct {
-	Id      string   `db:"id,omitempty"`
-	Text    string   `db:"text,omitempty"`
-	Type    string   `db:"type"`
-	Options []Option `db:"options,omitempty"`
-	//CreatedAt string `db:"createdAt,omitempty" json:"-"`
-	//UpdatedAt string `db:"updatedAt,omitempty" json:"-"`
+	Id        string   `json:"id,int,omitempty" db:"id,omitempty"`
+	Text      string   `json:"name,omitempty" db:"text,omitempty"`
+	Type      string   `json:"type,omitempty" db:"type"`
+	Options   []Option `json:"options,omitempty" db:"options,omitempty"`
+	PollId    string   `json:"-" db:"pollId,omitempty"`
+	CreatedAt string   `json:"-" db:"createdAt"`
+	UpdatedAt string   `json:"-" db:"updatedAt"`
 }
 
 type PollDTO struct {
-	Id          string     `json:"id,omitempty"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Questions   []Question `json:"questions,omitempty"`
+	Id          string        `json:"id,int,omitempty"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Questions   []QuestionDTO `json:"questions,omitempty"`
 }
 
 type Poll struct {
@@ -38,6 +38,6 @@ type Poll struct {
 	Name        string     `json:"name,omitempty" db:"name"`
 	Description string     `json:"description,omitempty" db:"description"`
 	Question    []Question `json:"question,omitempty" db:"-"`
-	CreatedAt   string     `json:"createdAt,omitempty" db:"createdAt"`
-	UpdatedAt   string     `json:"updatedAt,omitempty" db:"updatedAt"`
+	CreatedAt   string     `json:"-" db:"createdAt"`
+	UpdatedAt   string     `json:"-" db:"updatedAt"`
 }

@@ -14,35 +14,18 @@ type pollStorage struct {
 	db *sqlx.DB
 }
 
-type opt struct {
-	Id2   sql.NullString `db:"id,omitempty"`
-	Text2 sql.NullString `db:"text,omitempty"`
+type optionRow struct {
+	Id   sql.NullString `db:"id,omitempty"`
+	Text sql.NullString `db:"text,omitempty"`
 }
 
-type quest struct {
-	Id   string `db:"id,omitempty"`
-	Text string `db:"text,omitempty"`
-	Type string `db:"type,omitempty"`
-	//CreatedAt string `db:"createdAt,omitempty" json:"-"`
-	//UpdatedAt string `db:"updatedAt,omitempty" json:"-"`
-	PollId string `db:"pollId,omitempty"`
-	Opt    opt    `db:"options"`
-	//QuestionId string `db:"options.questionId,omitempty"`
+type questionRow struct {
+	Id     string    `db:"id,omitempty"`
+	Text   string    `db:"text,omitempty"`
+	Type   string    `db:"type,omitempty"`
+	PollId string    `db:"pollId,omitempty"`
+	Opt    optionRow `db:"options"`
 }
-
-//type opt2 struct {
-//	Id2   sql.NullString `db:"id,omitempty"`
-//	Text2 sql.NullString `db:"text,omitempty"`
-//}
-//
-//type quest2 struct {
-//	Id     string           `db:"id,omitempty"`
-//	Text   string           `db:"text,omitempty"`
-//	Type   string           `db:"type,omitempty"`
-//	PollId string           `db:"pollId,omitempty"`
-//	Ids    []sql.NullString `db:"options.id"`
-//	Texts  []sql.NullString `db:"options.text"`
-//}
 
 func (p *pollStorage) GetQuestions(pollId string) ([]poll.Question, error) {
 	queryTemplate := `SELECT "questions"."id", "questions"."text" , "questions"."type", "questions"."pollId" AS "pollId",
@@ -50,45 +33,40 @@ func (p *pollStorage) GetQuestions(pollId string) ([]poll.Question, error) {
 	FROM "questions" LEFT JOIN "options" ON "questions"."id"="options"."questionId" WHERE "pollId"=%s`
 	query := fmt.Sprintf(queryTemplate, pollId)
 
-	var questions []quest
+	var questions []questionRow
 	err := p.db.Select(&questions, query)
 	if err != nil {
 		fmt.Printf("select error: %v", err)
 		return nil, err
 	}
 
-	fmt.Println(questions)
-	//out := make([]poll.Question, 1)
+	//fmt.Println(questions)
 	var out []poll.Question
 
-	type createQuestion func(s *[]poll.Question, r quest) *poll.Question {
-
+	createQuestion := func(row *questionRow) *poll.Question {
+		q := poll.Question{
+			Id:   row.Id,
+			Text: row.Text,
+			Type: row.Type,
+		}
+		out = append(out, q)
+		return &q
 	}
 
 	for i, row := range questions {
-		var q poll.Question
+		var q *poll.Question
 		if i == 0 {
-			q = poll.Question{
-				Id:   row.Id,
-				Text: row.Text,
-				Type: row.Type,
-			}
-			out = append(out, q)
+			q = createQuestion(&row)
 		} else {
-			q = out[len(out)-1]
+			q = &out[len(out)-1]
 			if q.Id != row.Id {
-				q = poll.Question{
-					Id:   row.Id,
-					Text: row.Text,
-					Type: row.Type,
-				}
-				out = append(out, q)
+				q = createQuestion(&row)
 			}
 		}
-		if row.Opt.Id2.Valid {
+		if row.Opt.Id.Valid {
 			q.Options = append(q.Options, poll.Option{
-				Id:   row.Opt.Id2.String,
-				Text: row.Opt.Text2.String,
+				Id:   row.Opt.Id.String,
+				Text: row.Opt.Text.String,
 			})
 		}
 
@@ -98,16 +76,16 @@ func (p *pollStorage) GetQuestions(pollId string) ([]poll.Question, error) {
 	//if err != nil {
 	//	fmt.Printf("Error during Getting: %v", err)
 	//} else {
-	//	//var opt poll.Option
+	//	//var optionRow poll.Option
 	//	for rows.Next() {
 	//		columns, err3 := rows.Columns()
-	//		//err3 := rows.StructScan(&opt)
+	//		//err3 := rows.StructScan(&optionRow)
 	//		if err3 != nil {
 	//			fmt.Println("error during scanning row")
 	//		} else {
 	//			fmt.Println("Columns are: ", columns)
 	//		}
-	//		var q quest
+	//		var q questionRow
 	//		err4 := rows.StructScan(&q)
 	//		if err4 != nil {
 	//			fmt.Printf("scanning error: %v", err4)
@@ -139,12 +117,21 @@ func (p *pollStorage) GetPollsList() ([]poll.Poll, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to get all polls: %v", err)
 	}
-
 	return polls, nil
 }
 
 func (p *pollStorage) GetPoll(id string) (poll.Poll, error) {
-	return poll.Poll{}, nil
+	var pollObj poll.Poll
+	err := p.db.Get(&pollObj, `SELECT * from "polls" WHERE "id" = $1`, id)
+	if err != nil {
+		return pollObj, fmt.Errorf("unable to get poll with id=%s: %v", id, err)
+	}
+	questions, err := p.GetQuestions(id)
+	if err != nil {
+		return pollObj, fmt.Errorf("unable to get questions with pollId=%s: %v", id, err)
+	}
+	pollObj.Question = questions
+	return pollObj, nil
 }
 
 func (p *pollStorage) GetQuestion(id string) (poll.Question, error) {
@@ -152,9 +139,55 @@ func (p *pollStorage) GetQuestion(id string) (poll.Question, error) {
 	panic("implement me")
 }
 
-func (p *pollStorage) CreatePoll(poll *poll.Poll) (int64, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *pollStorage) CreatePoll(pollPtr *poll.Poll) (int64, error) {
+	const pollTemplate = `INSERT INTO "polls" ("name", "description", "createdAt", "updatedAt") 
+	VALUES (%s, %s, '2022-11-22', '2022-11-22') RETURNING ("id")`
+
+	const questionTemplate = `INSERT INTO "questions" ("text", "type", "createdAt", "updatedAt", "pollId") 
+	VALUES (%s, %s, '2022-11-22', '2022-11-22', %s) RETURNING ("id")`
+
+	const optionTemplate = `INSERT INTO "options" ("text", "createdAt", "updatedAt", "questionId") 
+	VALUES (%s, '2022-11-22', '2022-11-22', %s) RETURNING ("id")`
+
+	//var pollObj poll.Poll
+	pollQuery := fmt.Sprintf(pollTemplate, pollPtr.Name, pollPtr.Description)
+	p.
+	pollExec, err := p.db.NamedExec(pollTemplate, *pollPtr)
+	if err != nil {
+		return -1, fmt.Errorf("unable to create a new poll: %v", err)
+	}
+	pollId, _ := pollExec.LastInsertId()
+	for i, _ := range pollPtr.Question {
+		question := pollPtr.Question[i]
+		question.PollId = string(pollId)
+		questExec, err := p.db.NamedExec(questionTemplate, question)
+		if err != nil {
+			return -1, fmt.Errorf("unable to create a new question: %v", err)
+		}
+		questId, _ := questExec.LastInsertId()
+		for j, _ := range question.Options {
+			option := question.Options[j]
+			option.QuestionId = string(questId)
+			_, err := p.db.NamedExec(optionTemplate, option)
+			if err != nil {
+				return -1, fmt.Errorf("unable to create a new option: %v", err)
+			}
+		}
+	}
+	return pollId, nil
+	/*
+		query := fmt.Sprintf(`INSERT INTO "users" ("login", "password", "role", "createdAt", "updatedAt")  VALUES ('%s', '%s', '%s', '2022-11-22', '2022-11-22') RETURNING ("id", "login", "password", "role")`, usr.Username, usr.PasswordHash, usr.Role)
+		fmt.Println(query)
+		//row := u.db.QueryRowx(query)
+		exec, err := u.db.NamedExec(`INSERT INTO "users" ("login", "password", "role", "createdAt", "updatedAt")  VALUES (:login, :password, :role, '2022-11-22', '2022-11-22') RETURNING ("id", "login", "password", "role")`, usr)
+		if err != nil {
+			return user.User{}, fmt.Errorf("unable to create new user: %v", err)
+		}
+		id, _ := exec.LastInsertId()
+		fmt.Printf("inserted id is %s", string(id))
+		out.ID = string(id)
+		return out, nil
+	*/
 }
 
 /*
